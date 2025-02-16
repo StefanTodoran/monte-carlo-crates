@@ -1,4 +1,17 @@
-# Single-Player Monte-Carlo Tree Search
+## Usage
+
+Play the game:
+
+```bash
+uv run python3 cratescraters_env.py
+```
+
+Train the agent:
+```bash
+uv run python3 main.py
+```
+
+## Single-Player MCTS
 
 General-purpose Python implementation of a **single-player** variant of the **Monte-Carlo tree search** (MCTS) algorithm for deep reinforcement learning. The original two-player variant was introduced in the [AlphaZero paper](https://arxiv.org/abs/1712.01815) by Silver et al.
 
@@ -8,30 +21,6 @@ The original AlphaZero algorithm was developed for two-player games. We modified
 
 This repository provides an implementation of the MCTS algorithm that is independent of any deep learning framework. Furthermore, we provide a working example using PyTorch in which the agent learns to find the highest point on a map.
 
-![](HillClimbing.gif)
-
-
-## Files
+## Files Overview
 
 The files `mcts.py`, and `static_env.py` provide the basic implementation and can be used independently of the application and the preferred deep learning framework. The training algorithm in `trainer.py` is largely application-independent but dependent on the choice of deep learning framework. We provide an example implementation using PyTorch. The remaining files are specific to the toy-example and need to be adapted for other applications.
-
-## Requirements
-
-### MCTS algorithm
-
-* NumPy
-
-### Toy example
-
-* PyTorch
-* OpenAI gym
-* Matplotlib
-
-## License
-
-The implementation of the Monte-Carlo tree search algorithm in `mcts.py` was adapted from the [minigo](https://github.com/tensorflow/minigo) implementation of AlphaGo Zero, which is under the [Apache-2.0 license](https://github.com/FelixOpolka/Single-Player-MCTS/blob/master/minigo-license). Our changes are published under the MIT license.
-
-## Contributors
-
-This repository was part of a Bachelor Thesis project by Felix Opolka supervised by Vladimir Golkov and Prof. Daniel Cremers. 
-

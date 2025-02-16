@@ -24,6 +24,17 @@ class Game:
     won: bool = False
     move_history: List[Direction] = field(default_factory=list)
 
+    def to_observations(self) -> List[int]:
+        """Serializes the game state into a list."""
+        return [
+            self.max_coins,
+            self.coins,
+            self.keys,
+            self.player.x,
+            self.player.y,
+            *self.board.to_observations(),
+        ]
+
 
 def clone_game_obj(game: Game) -> Game:
     new_game = Game()
@@ -177,6 +188,7 @@ def do_game_move(game: Game, move: Direction) -> Tuple[Game, bool]:
     """
     Attempts to do a move, returns the successor state and whether the state changed.
     """
+    move = Direction(move)
     next_game = clone_game_obj(game)
     move_to = Position(x=game.player.x, y=game.player.y)
     one_further = Position(x=game.player.x, y=game.player.y)
@@ -222,9 +234,6 @@ def do_game_move(game: Game, move: Direction) -> Tuple[Game, bool]:
     if game.keys > 0 and move_to_layer.foreground.id == TileType.DOOR:
         next_game.keys -= 1
         next_game.board.set_tile(move_to.y, move_to.x, empty_tile)
-
-    print("move_to_layer", move_to_layer.foreground.id, move_to_layer.background.id)
-    print("one_further_layer", one_further_layer.foreground.id, one_further_layer.background.id)
 
     # Handle pushable objects and ice blocks
     if one_further_layer.background.id == TileType.EMPTY or (

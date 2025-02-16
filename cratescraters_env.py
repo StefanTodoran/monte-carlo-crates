@@ -19,7 +19,8 @@ from game_logic import (
 from static_env import StaticEnv
 from utils import cprint
 
-tile_visual_width = 3
+TILE_VISUAL_WIDTH = 3
+SCORE_PER_COIN = 100
 
 player_visual = (" Ω ", "purple")
 
@@ -51,6 +52,7 @@ tile_visuals = {
 
 class CratesCratersEnv(gym.Env, StaticEnv):
     level_id: int = 0
+    n_actions: int = len(Direction)
 
     def __init__(self, level_id: int):
         raw_board = load_level(level_id)
@@ -60,14 +62,19 @@ class CratesCratersEnv(gym.Env, StaticEnv):
     def reset(self):
         """Resets the environment to an initial state, returning the initial observation and observation information."""
         self.game = initialize_game_obj(self.board)
-        return self.game, 0, False, None
+        return self.game.to_observations(), 0, False, None
 
-    def step(self, action: Direction):
+    def step(self, action):
         """Takes a step in the environment using an action returning the next observation, reward, if the environment terminated and observation information."""
+        action = Direction(action)
         next_game, _ = do_game_move(self.game, action)
+
+        reward = -1
+        if next_game.coins > self.game.coins:
+            reward += SCORE_PER_COIN
+
         self.game = next_game
-        reward = CratesCratersEnv.get_return(self.game, len(self.game.move_history))
-        return self.game, reward, self.game.won, None
+        return self.game.to_observations(), reward, self.game.won, None
 
     def render(self, mode="human"):
         if mode != "human":
@@ -81,7 +88,7 @@ class CratesCratersEnv(gym.Env, StaticEnv):
         else:
             # If we want to clear each time we render:
             # os.system("cls" if os.name == "nt" else "clear")
-            print("┏" + ("-" * self.game.board.width * tile_visual_width) + "┓")
+            print("┏" + ("-" * self.game.board.width * TILE_VISUAL_WIDTH) + "┓")
 
             for y in range(self.game.board.height):
                 print("|", end="")
@@ -101,7 +108,7 @@ class CratesCratersEnv(gym.Env, StaticEnv):
                     cprint(f"{visual}", color, end="")
                 print("|")
 
-            print("┗" + ("-" * self.game.board.width * tile_visual_width) + "┛")
+            print("┗" + ("-" * self.game.board.width * TILE_VISUAL_WIDTH) + "┛")
             print(f"Coins: {self.game.coins}/{self.game.max_coins}, Keys: {self.game.keys} ({len(self.game.move_history)} moves)")
 
     @staticmethod
@@ -110,22 +117,22 @@ class CratesCratersEnv(gym.Env, StaticEnv):
         return next_game
 
     @staticmethod
-    def is_done_state(state):
-        return is_win_condition_met(state)
+    def is_done_state(state: Game, step_idx: int):
+        return is_win_condition_met(state) or CratesCratersEnv.get_return(state, step_idx) < -1 * SCORE_PER_COIN * state.max_coins
 
     @staticmethod
-    def initial_state(cls):
-        raw_board = load_level(cls.level_id)
+    def initial_state():
+        raw_board = load_level(CratesCratersEnv.level_id)
         board = unsqueeze_board(raw_board)
         return initialize_game_obj(board)
 
     @staticmethod
     def get_obs_for_states(states: list[Game]):
-        return np.array(states)
+        return np.array([state.to_observations() for state in states])
 
     @staticmethod
     def get_return(state: Game, step_idx):
-        return state.coins * 100 - step_idx
+        return state.coins * SCORE_PER_COIN - step_idx
 
 
 if __name__ == "__main__":
@@ -143,7 +150,7 @@ if __name__ == "__main__":
     while True:
         env.render()
 
-        if env.is_done_state(env.game):
+        if env.is_done_state(env.game, 0):
             print("You won!")
             sys.exit(0)
 

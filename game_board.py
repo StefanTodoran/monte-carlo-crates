@@ -104,6 +104,40 @@ class LayeredBoard:
             "right": x + 1 < self.width and self.board[y][x + 1].background.id == TileType.WALL,
         }
 
+    def to_observations(self):
+        observations: list[int] = []
+        for row in self.board:
+            for layer in row:
+                data = [layer.foreground.id.value, layer.background.id.value]
+
+                if layer.foreground.id == TileType.BOMB:
+                    data.append(layer.foreground.fuse)
+                elif layer.foreground.id == TileType.ONEWAY:
+                    data.append(layer.foreground.orientation.value)
+                else:
+                    data.append(-1)
+
+                observations.extend(data)
+
+        return observations
+
+    # def to_tokens(self):
+    #     observations: list[int] = []
+    #     for row in self.board:
+    #         for layer in row:
+    #             data = [layer.foreground.id.value, layer.background.id.value]
+
+    #             if layer.foreground.id == TileType.BOMB:
+    #                 data.append(layer.foreground.fuse)
+    #             elif layer.foreground.id == TileType.ONEWAY:
+    #                 data.append(layer.foreground.orientation.value)
+    #             else:
+    #                 data.append(-1)
+
+    #             observations.extend(data)
+
+    #     return observations
+
 
 def load_level(level_index: int) -> List[List[SimpleTile]]:
     with open("levels.txt", "r") as file:

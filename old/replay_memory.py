@@ -62,14 +62,6 @@ class ReplayMemory:
         num = len(list(rows.values())[0])
         assert all(len(x) == num for x in rows.values())
 
-        # If the incoming data is larger than the memory size, only keep the most recent entries
-        if num > self.size:
-            for column_name in self.columns.keys():
-                self.columns[column_name][:] = rows[column_name][-self.size :]
-            self.count = self.size
-            self.current = 0
-            return
-
         if self.current + num <= self.size:
             for column_name in self.columns.keys():
                 self.columns[column_name][np.arange(num) + self.current] = rows[column_name]
