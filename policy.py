@@ -19,12 +19,16 @@ class CratesCratersPolicy(nn.Module):
         self.n_hidden_2 = n_hidden_2
         self.n_actions = n_actions
 
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.to(self.device)  # Move model to GPU if available
+
         self.dense_in = nn.Linear(n_obs, n_hidden_1)
         self.dense_1 = nn.Linear(n_hidden_1, n_hidden_2)
         self.dense_2 = nn.Linear(n_hidden_2, n_actions)
         self.dense_out = nn.Linear(n_hidden_2, 1)
 
     def forward(self, obs):
+        obs = obs.to(self.device)  # Move input to GPU
         h1_relu = F.relu(self.dense_in(obs.float()))
         h2_relu = F.relu(self.dense_1(h1_relu))
 
@@ -45,5 +49,4 @@ class CratesCratersPolicy(nn.Module):
         obs = np.array(obs, dtype=np.int64)
         obs = torch.from_numpy(obs)
         _, pi, v = self.forward(obs)
-
-        return pi.detach().numpy(), v.detach().numpy()
+        return pi.cpu().detach().numpy(), v.cpu().detach().numpy()

@@ -3,6 +3,7 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from tqdm import tqdm
 
 from cratescraters_env import CratesCratersEnv
@@ -43,6 +44,9 @@ if __name__ == "__main__":
     n_actions = len(Direction)
     n_obs = len(test_env.game.to_observations())
     print("Number of observations:", n_obs)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
 
     trainer = Trainer(lambda: CratesCratersPolicy(n_obs, args.hidden_1_size, args.hidden_2_size, n_actions))
     network = trainer.step_model

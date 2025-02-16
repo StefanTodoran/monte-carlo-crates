@@ -11,15 +11,17 @@ class Trainer:
     """
 
     def __init__(self, Policy, learning_rate=0.1):
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.step_model = Policy()
+        self.step_model.to(self.device)
 
         value_criterion = nn.MSELoss()
         optimizer = torch.optim.SGD(self.step_model.parameters(), lr=learning_rate)
 
         def train(obs, search_pis, returns):
-            obs = torch.from_numpy(obs)
-            search_pis = torch.from_numpy(search_pis)
-            returns = torch.from_numpy(returns)
+            obs = torch.from_numpy(obs).to(self.device)
+            search_pis = torch.from_numpy(search_pis).to(self.device)
+            returns = torch.from_numpy(returns).to(self.device)
 
             optimizer.zero_grad()
             logits, policy, value = self.step_model(obs)
@@ -32,6 +34,6 @@ class Trainer:
             loss.backward()
             optimizer.step()
 
-            return value_loss.data.numpy(), policy_loss.data.numpy()
+            return value_loss.cpu().data.numpy(), policy_loss.cpu().data.numpy()
 
         self.train = train
