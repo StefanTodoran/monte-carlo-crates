@@ -4,9 +4,11 @@ Adapted from https://github.com/tensorflow/minigo/blob/master/mcts.py
 Implementation of the Monte-Carlo tree search algorithm as detailed in the
 AlphaGo Zero paper (https://www.nature.com/articles/nature24270).
 """
+
+import collections
 import math
 import random as rd
-import collections
+
 import numpy as np
 
 # Exploration constant
@@ -29,13 +31,17 @@ class DummyNode:
         self.child_N = collections.defaultdict(float)
         self.child_W = collections.defaultdict(float)
 
-    def revert_virtual_loss(self, up_to=None): pass
+    def revert_virtual_loss(self, up_to=None):
+        pass
 
-    def add_virtual_loss(self, up_to=None): pass
+    def add_virtual_loss(self, up_to=None):
+        pass
 
-    def revert_visits(self, up_to=None): pass
+    def revert_visits(self, up_to=None):
+        pass
 
-    def backup_value(self, value, up_to=None): pass
+    def backup_value(self, value, up_to=None):
+        pass
 
 
 class MCTSNode:
@@ -60,7 +66,7 @@ class MCTSNode:
             self.depth = 0
             parent = DummyNode()
         else:
-            self.depth = parent.depth+1
+            self.depth = parent.depth + 1
         self.parent = parent
         self.action = action
         self.state = state
@@ -109,8 +115,7 @@ class MCTSNode:
 
     @property
     def child_U(self):
-        return (c_PUCT * math.sqrt(1 + self.N) *
-                self.child_prior / (1 + self.child_N))
+        return c_PUCT * math.sqrt(1 + self.N) * self.child_prior / (1 + self.child_N)
 
     @property
     def child_action_score(self):
@@ -153,9 +158,7 @@ class MCTSNode:
         if action not in self.children:
             # Obtain state following given action.
             new_state = self.TreeEnv.next_state(self.state, action)
-            self.children[action] = MCTSNode(new_state, self.n_actions,
-                                             self.TreeEnv,
-                                             action=action, parent=self)
+            self.children[action] = MCTSNode(new_state, self.n_actions, self.TreeEnv, action=action, parent=self)
         return self.children[action]
 
     def add_virtual_loss(self, up_to):
@@ -249,11 +252,11 @@ class MCTSNode:
         """
         probs = self.child_N
         if squash:
-            probs = probs ** .95
+            probs = probs**0.95
         return probs / np.sum(probs)
 
     def print_tree(self, level=0):
-        node_string = "\033[94m|" + "----"*level
+        node_string = "\033[94m|" + "----" * level
         node_string += "Node: action={}\033[0m".format(self.action)
         node_string += "\n• state:\n{}".format(self.state)
         node_string += "\n• N={}".format(self.N)
@@ -262,7 +265,7 @@ class MCTSNode:
         node_string += "\n• P:\n{}".format(self.child_prior)
         print(node_string)
         for _, child in sorted(self.children.items()):
-            child.print_tree(level+1)
+            child.print_tree(level + 1)
 
 
 class MCTS:
@@ -271,8 +274,7 @@ class MCTS:
     the tree search.
     """
 
-    def __init__(self, agent_netw, TreeEnv, seconds_per_move=None,
-                 simulations_per_move=800, num_parallel=8):
+    def __init__(self, agent_netw, TreeEnv, seconds_per_move=None, simulations_per_move=800, num_parallel=8):
         """
         :param agent_netw: Network for predicting action probabilities and
         state value estimate.
@@ -289,7 +291,7 @@ class MCTS:
         self.seconds_per_move = seconds_per_move
         self.simulations_per_move = simulations_per_move
         self.num_parallel = num_parallel
-        self.temp_threshold = None        # Overwritten in initialize_search
+        self.temp_threshold = None  # Overwritten in initialize_search
 
         self.qs = []
         self.rewards = []
@@ -344,8 +346,7 @@ class MCTS:
             leaves.append(leaf)
         # Evaluate the leaf-states all at once and backup the value estimates.
         if leaves:
-            action_probs, values = self.agent_netw.step(
-                self.TreeEnv.get_obs_for_states([leaf.state for leaf in leaves]))
+            action_probs, values = self.agent_netw.step(self.TreeEnv.get_obs_for_states([leaf.state for leaf in leaves]))
             for leaf, action_prob, value in zip(leaves, action_probs, values):
                 leaf.revert_virtual_loss(up_to=self.root)
                 leaf.incorporate_estimates(action_prob, value, up_to=self.root)
@@ -374,12 +375,9 @@ class MCTS:
         # Store data to be used as experience tuples.
         ob = self.TreeEnv.get_obs_for_states([self.root.state])
         self.obs.append(ob)
-        self.searches_pi.append(
-            self.root.visits_as_probs()) # TODO: Use self.root.position.n < self.temp_threshold as argument
+        self.searches_pi.append(self.root.visits_as_probs())  # TODO: Use self.root.position.n < self.temp_threshold as argument
         self.qs.append(self.root.Q)
-        reward = (self.TreeEnv.get_return(self.root.children[action].state,
-                                          self.root.children[action].depth)
-                  - sum(self.rewards))
+        reward = self.TreeEnv.get_return(self.root.children[action].state, self.root.children[action].depth) - sum(self.rewards)
         self.rewards.append(reward)
 
         # Resulting state becomes new root of the tree.
@@ -409,8 +407,7 @@ def execute_episode(agent_netw, num_simulations, TreeEnv):
     # Must run this once at the start, so that noise injection actually affects
     # the first action of the episode.
     first_node = mcts.root.select_leaf()
-    probs, vals = agent_netw.step(
-        TreeEnv.get_obs_for_states([first_node.state]))
+    probs, vals = agent_netw.step(TreeEnv.get_obs_for_states([first_node.state]))
     first_node.incorporate_estimates(probs[0], vals[0], first_node)
 
     while True:
@@ -433,11 +430,9 @@ def execute_episode(agent_netw, num_simulations, TreeEnv):
 
     # Computes the returns at each step from the list of rewards obtained at
     # each step. The return is the sum of rewards obtained *after* the step.
-    ret = [TreeEnv.get_return(mcts.root.state, mcts.root.depth) for _
-           in range(len(mcts.rewards))]
+    ret = [TreeEnv.get_return(mcts.root.state, mcts.root.depth) for _ in range(len(mcts.rewards))]
 
     total_rew = np.sum(mcts.rewards)
 
     obs = np.concatenate(mcts.obs)
     return (obs, mcts.searches_pi, ret, total_rew, mcts.root.state)
-

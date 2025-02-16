@@ -28,14 +28,12 @@ class ReplayMemory:
         # Convert shape of individual rows to shape of entire columns.
         if column_shapes is None:
             column_shapes = {key: [] for key in column_types.keys()}
-        column_shapes = {key: [self.size]+shape for (key, shape)
-                         in column_shapes.items()}
+        column_shapes = {key: [self.size] + shape for (key, shape) in column_shapes.items()}
 
         # Preallocate memory
         self.columns = {}
         for column_name, data_type in column_types.items():
-            self.columns[column_name] = np.empty(column_shapes[column_name],
-                                                 dtype=data_type)
+            self.columns[column_name] = np.empty(column_shapes[column_name], dtype=data_type)
 
         # Index of the row in the replay memory which gets replaced during the
         # next insert.
@@ -51,7 +49,7 @@ class ReplayMemory:
         for column_name in self.columns.keys():
             self.columns[column_name][self.current] = row[column_name]
 
-        self.count = max(self.count, self.current+1)
+        self.count = max(self.count, self.current + 1)
         self.current = (self.current + 1) % self.size
 
     def add_all(self, rows):
@@ -66,19 +64,16 @@ class ReplayMemory:
 
         if self.current + num <= self.size:
             for column_name in self.columns.keys():
-                self.columns[column_name][np.arange(num)+self.current] = \
-                    rows[column_name]
+                self.columns[column_name][np.arange(num) + self.current] = rows[column_name]
         else:
             num_free = self.size - self.current
             num_over = num - num_free
             # Insert first few elements at the end
             for column_name in self.columns.keys():
-                self.columns[column_name][self.current:] = \
-                    rows[column_name][:num_free]
+                self.columns[column_name][self.current :] = rows[column_name][:num_free]
             # Insert remaining elements at the front
             for column_name in self.columns.keys():
-                self.columns[column_name][:num_over] = \
-                    rows[column_name][num_free:]
+                self.columns[column_name][:num_over] = rows[column_name][num_free:]
 
         self.count = max(self.count, min(self.current + num, self.size))
         self.current = (self.current + num) % self.size
@@ -98,15 +93,12 @@ class ReplayMemory:
     def __str__(self):
         descr = ""
         for column_name in self.columns.keys():
-            descr += "{0}: {1}\n".format(column_name,
-                                         self.columns[column_name].__str__())
+            descr += "{0}: {1}\n".format(column_name, self.columns[column_name].__str__())
         return descr
 
 
-if __name__ == '__main__':
-    mem = ReplayMemory(10, {"state": np.uint8, "value": np.float32},
-                       column_shapes={"state": [], "value": [2]},
-                       batch_size=2)
+if __name__ == "__main__":
+    mem = ReplayMemory(10, {"state": np.uint8, "value": np.float32}, column_shapes={"state": [], "value": [2]}, batch_size=2)
     mem.add({"state": 2, "value": [0.5, 0.5]})
     mem.add({"state": 3, "value": [1.0, 1.0]})
     print(mem)

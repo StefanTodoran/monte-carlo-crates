@@ -71,7 +71,13 @@ class CratesCratersEnv(gym.Env, StaticEnv):
 
     def render(self, mode="human"):
         if mode != "human":
-            pass
+            simple_state = {
+                "position": self.game.player,
+                "coins": self.game.coins,
+                "keys": self.game.keys,
+                "moves": len(self.game.move_history),
+            }
+            print(simple_state)
         else:
             # If we want to clear each time we render:
             # os.system("cls" if os.name == "nt" else "clear")

@@ -3,15 +3,17 @@ Example program that uses the single-player MCTS algorithm to train an agent
 to master the HillClimbingEnvironment, in which the agent has to reach the
 highest point on a map.
 """
-import time
-import numpy as np
-import matplotlib.pyplot as plt
 
-from trainer import Trainer
-from policy import HillClimbingPolicy
-from replay_memory import ReplayMemory
+import time
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 from hill_climbing_env import HillClimbingEnv
 from mcts import execute_episode
+from policy import HillClimbingPolicy
+from replay_memory import ReplayMemory
+from trainer import Trainer
 
 
 def log(test_env, iteration, step_idx, total_rew):
@@ -30,20 +32,14 @@ def log(test_env, iteration, step_idx, total_rew):
     print(f"Return: {total_rew}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     n_actions = 4
     n_obs = 49
 
     trainer = Trainer(lambda: HillClimbingPolicy(n_obs, 20, n_actions))
     network = trainer.step_model
 
-    mem = ReplayMemory(200,
-                       { "ob": np.long,
-                         "pi": np.float32,
-                         "return": np.float32},
-                       { "ob": [],
-                         "pi": [n_actions],
-                         "return": []})
+    mem = ReplayMemory(200, {"ob": np.long, "pi": np.float32, "return": np.float32}, {"ob": [], "pi": [n_actions], "return": []})
 
     def test_agent(iteration):
         test_env = HillClimbingEnv()
@@ -56,7 +52,7 @@ if __name__ == '__main__':
             # print(p)
             action = np.argmax(p)
             state, reward, done, _ = test_env.step(action)
-            step_idx+=1
+            step_idx += 1
             total_rew += reward
         log(test_env, iteration, step_idx, total_rew)
 
@@ -71,9 +67,7 @@ if __name__ == '__main__':
             plt.legend()
             plt.show()
 
-        obs, pis, returns, total_reward, done_state = execute_episode(network,
-                                                                 32,
-                                                                 HillClimbingEnv)
+        obs, pis, returns, total_reward, done_state = execute_episode(network, 32, HillClimbingEnv)
         mem.add_all({"ob": obs, "pi": pis, "return": returns})
 
         batch = mem.get_minibatch()

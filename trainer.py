@@ -11,12 +11,10 @@ class Trainer:
     """
 
     def __init__(self, Policy, learning_rate=0.1):
-
         self.step_model = Policy()
 
         value_criterion = nn.MSELoss()
-        optimizer = torch.optim.SGD(self.step_model.parameters(),
-                                    lr=learning_rate)
+        optimizer = torch.optim.SGD(self.step_model.parameters(), lr=learning_rate)
 
         def train(obs, search_pis, returns):
             obs = torch.from_numpy(obs)
@@ -27,8 +25,7 @@ class Trainer:
             logits, policy, value = self.step_model(obs)
 
             logsoftmax = nn.LogSoftmax(dim=1)
-            policy_loss = 5*torch.mean(torch.sum(-search_pis
-                                               * logsoftmax(logits), dim=1))
+            policy_loss = 5 * torch.mean(torch.sum(-search_pis * logsoftmax(logits), dim=1))
             value_loss = value_criterion(value, returns)
             loss = policy_loss + value_loss
 

@@ -1,5 +1,3 @@
-
-
 class StaticEnv:
     """
     Abstract class for a static environment. A static environment follows the

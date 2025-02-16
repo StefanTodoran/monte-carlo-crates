@@ -57,15 +57,7 @@ class LayeredBoard:
     @classmethod
     def create_empty_board(cls, width: int = 8, height: int = 14) -> "LayeredBoard":
         empty_tile = SimpleTile(id=TileType.EMPTY)
-        return cls(
-            [
-                [
-                    LayerTiles(foreground=empty_tile, background=empty_tile)
-                    for _ in range(width)
-                ]
-                for _ in range(height)
-            ]
-        )
+        return cls([[LayerTiles(foreground=empty_tile, background=empty_tile) for _ in range(width)] for _ in range(height)])
 
     def clone(self) -> "LayeredBoard":
         new_board = [
@@ -108,10 +100,8 @@ class LayeredBoard:
         return {
             "top": y > 0 and self.board[y - 1][x].background.id == TileType.WALL,
             "left": x > 0 and self.board[y][x - 1].background.id == TileType.WALL,
-            "bottom": y + 1 < self.height
-            and self.board[y + 1][x].background.id == TileType.WALL,
-            "right": x + 1 < self.width
-            and self.board[y][x + 1].background.id == TileType.WALL,
+            "bottom": y + 1 < self.height and self.board[y + 1][x].background.id == TileType.WALL,
+            "right": x + 1 < self.width and self.board[y][x + 1].background.id == TileType.WALL,
         }
 
 
