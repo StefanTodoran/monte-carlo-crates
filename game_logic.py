@@ -9,6 +9,10 @@ from game_board import (
     TileType,
 )
 
+pushable_tiles = [TileType.CRATE, TileType.METAL_CRATE, TileType.BOMB]
+fill_capable_tiles = [TileType.CRATE, TileType.ICE_BLOCK]
+explodable_tiles = [TileType.CRATE, TileType.ICE_BLOCK]
+
 
 @dataclass
 class Game:
@@ -56,17 +60,9 @@ def can_walk_tile(
     if target_space.foreground.id == TileType.FLAG and game.coins == game.max_coins:
         return True
 
-    can_walk = (
-        target_space.foreground.id in walkable
-        and target_space.background.id in walkable
-    )
+    can_walk = target_space.foreground.id in walkable and target_space.background.id in walkable
 
-    if (
-        can_walk
-        and direction is not None
-        and target_space.background.id == TileType.ONEWAY
-        and not can_enter_oneway(direction, target_space.background)
-    ):
+    if can_walk and direction is not None and target_space.background.id == TileType.ONEWAY and not can_enter_oneway(direction, target_space.background):
         can_walk = False
 
     return can_walk
@@ -108,9 +104,7 @@ def can_move_to(game: Game, tile_x: int, tile_y: int) -> Optional[List[Direction
     Checks if the destination position can be reached from the current position.
     Returns a path of directions if possible, None if not.
     """
-    if not can_walk_tile(
-        tile_y, tile_x, game, [TileType.COIN, TileType.KEY, TileType.ONEWAY]
-    ):
+    if not can_walk_tile(tile_y, tile_x, game, [TileType.COIN, TileType.KEY, TileType.ONEWAY]):
         return None
 
     @dataclass
@@ -165,24 +159,10 @@ def can_move_to(game: Game, tile_x: int, tile_y: int) -> Optional[List[Direction
         if tile_x == current.x and tile_y == current.y:
             return current.path
 
-        queue.enqueue(
-            SearchNode(
-                x=current.x + 1, y=current.y, path=current.path + [Direction.RIGHT]
-            )
-        )
-        queue.enqueue(
-            SearchNode(
-                x=current.x - 1, y=current.y, path=current.path + [Direction.LEFT]
-            )
-        )
-        queue.enqueue(
-            SearchNode(
-                x=current.x, y=current.y + 1, path=current.path + [Direction.DOWN]
-            )
-        )
-        queue.enqueue(
-            SearchNode(x=current.x, y=current.y - 1, path=current.path + [Direction.UP])
-        )
+        queue.enqueue(SearchNode(x=current.x + 1, y=current.y, path=current.path + [Direction.RIGHT]))
+        queue.enqueue(SearchNode(x=current.x - 1, y=current.y, path=current.path + [Direction.LEFT]))
+        queue.enqueue(SearchNode(x=current.x, y=current.y + 1, path=current.path + [Direction.DOWN]))
+        queue.enqueue(SearchNode(x=current.x, y=current.y - 1, path=current.path + [Direction.UP]))
 
     return None
 
@@ -243,34 +223,25 @@ def do_game_move(game: Game, move: Direction) -> Tuple[Game, bool]:
         next_game.keys -= 1
         next_game.board.set_tile(move_to.y, move_to.x, empty_tile)
 
+    print("move_to_layer", move_to_layer.foreground.id, move_to_layer.background.id)
+    print("one_further_layer", one_further_layer.foreground.id, one_further_layer.background.id)
+
     # Handle pushable objects and ice blocks
     if one_further_layer.background.id == TileType.EMPTY or (
-        one_further_layer.background.id == TileType.ONEWAY
-        and can_enter_oneway(move, one_further_layer.background)
+        one_further_layer.background.id == TileType.ONEWAY and can_enter_oneway(move, one_further_layer.background)
     ):
         # Handle crater filling
-        if (
-            move_to_layer.foreground.id in fill_capable_tiles
-            and one_further_layer.foreground.id == TileType.CRATER
-        ):
+        if move_to_layer.foreground.id in fill_capable_tiles and one_further_layer.foreground.id == TileType.CRATER:
             next_game.board.set_tile(move_to.y, move_to.x, empty_tile)
             next_game.board.set_tile(one_further.y, one_further.x, empty_tile)
 
         # Handle pushing
-        if (
-            move_to_layer.foreground.id in pushable_tiles
-            and one_further_layer.foreground.id == TileType.EMPTY
-        ):
-            next_game.board.set_tile(
-                one_further.y, one_further.x, move_to_layer.foreground
-            )
+        if move_to_layer.foreground.id in pushable_tiles and one_further_layer.foreground.id == TileType.EMPTY:
+            next_game.board.set_tile(one_further.y, one_further.x, move_to_layer.foreground)
             next_game.board.set_tile(move_to.y, move_to.x, empty_tile)
 
         # Handle ice block sliding
-        if (
-            move_to_layer.foreground.id == TileType.ICE_BLOCK
-            and one_further_layer.foreground.id == TileType.EMPTY
-        ):
+        if move_to_layer.foreground.id == TileType.ICE_BLOCK and one_further_layer.foreground.id == TileType.EMPTY:
             curr_x = one_further.x
             curr_y = one_further.y
             prev_x = curr_x
@@ -285,10 +256,7 @@ def do_game_move(game: Game, move: Direction) -> Tuple[Game, bool]:
 
                 if (
                     curr_layer.foreground.id != TileType.EMPTY
-                    or (
-                        curr_layer.background.id == TileType.ONEWAY
-                        and not can_enter_oneway(move, curr_layer.background)
-                    )
+                    or (curr_layer.background.id == TileType.ONEWAY and not can_enter_oneway(move, curr_layer.background))
                     or curr_layer.background.id in [TileType.OUTSIDE, TileType.WALL]
                 ):
                     next_game.board.set_tile(prev_y, prev_x, move_to_layer.foreground)
@@ -323,9 +291,7 @@ def do_game_move(game: Game, move: Direction) -> Tuple[Game, bool]:
     return next_game, True
 
 
-def attempt_move(
-    y_pos: int, x_pos: int, next_game: Game, direction: Optional[Direction] = None
-) -> bool:
+def attempt_move(y_pos: int, x_pos: int, next_game: Game, direction: Optional[Direction] = None) -> bool:
     """Attempts to move the player to the given position."""
     if can_walk_tile(y_pos, x_pos, next_game, [TileType.ONEWAY], direction):
         next_game.player.x = x_pos
@@ -336,10 +302,7 @@ def attempt_move(
 
 def win_condition(game: Game) -> bool:
     """Checks if the win condition has been met."""
-    return (
-        game.board.get_tile(game.player.y, game.player.x).id == TileType.FLAG
-        and game.coins == game.max_coins
-    )
+    return game.board.get_tile(game.player.y, game.player.x).id == TileType.FLAG and game.coins == game.max_coins
 
 
 def initialize_game_obj(board: LayeredBoard) -> Game:
@@ -401,9 +364,7 @@ def is_valid_move(game: Game, offset: Offset) -> bool:
 def is_pushable(board: LayeredBoard, position: Position, offset: Offset) -> bool:
     """Checks if a tile can be pushed in the given direction."""
     move_to_layer = board.get_layer(position.y, position.x)
-    one_further_layer = board.get_layer(
-        position.y + offset.dy, position.x + offset.dx, True
-    )
+    one_further_layer = board.get_layer(position.y + offset.dy, position.x + offset.dx, True)
 
     if offset.dy == -1:
         move = Direction.UP
@@ -415,42 +376,22 @@ def is_pushable(board: LayeredBoard, position: Position, offset: Offset) -> bool
         move = Direction.RIGHT
 
     if one_further_layer.background.id == TileType.EMPTY or (
-        one_further_layer.background.id == TileType.ONEWAY
-        and can_enter_oneway(move, one_further_layer.background)
+        one_further_layer.background.id == TileType.ONEWAY and can_enter_oneway(move, one_further_layer.background)
     ):
         # Check crater filling
-        if (
-            move_to_layer.foreground.id in fill_capable_tiles
-            and one_further_layer.foreground.id == TileType.CRATER
-        ):
+        if move_to_layer.foreground.id in fill_capable_tiles and one_further_layer.foreground.id == TileType.CRATER:
             return True
 
         # Check regular pushing
-        if (
-            move_to_layer.foreground.id in pushable_tiles
-            and one_further_layer.foreground.id == TileType.EMPTY
-        ):
+        if move_to_layer.foreground.id in pushable_tiles and one_further_layer.foreground.id == TileType.EMPTY:
             return True
 
         # Check ice block pushing
-        if (
-            move_to_layer.foreground.id == TileType.ICE_BLOCK
-            and one_further_layer.foreground.id == TileType.EMPTY
-        ):
+        if move_to_layer.foreground.id == TileType.ICE_BLOCK and one_further_layer.foreground.id == TileType.EMPTY:
             return True
 
     return False
 
 
 def is_win_condition_met(next: Game) -> bool:
-    return next.board.get_tile(next.player.y, next.player.x).id == TileType.FLAG and (
-        next.coins == next.max_coins
-    )
-
-
-fill_capable_tiles = [TileType.ICE_BLOCK]  # Add other fill capable tiles as needed
-pushable_tiles = [TileType.BOMB]  # Add other pushable tiles as needed
-explodable_tiles = [
-    TileType.EMPTY,
-    TileType.SPAWN,
-]  # Add other explodable tiles as needed
+    return next.board.get_tile(next.player.y, next.player.x).id == TileType.FLAG and (next.coins == next.max_coins)

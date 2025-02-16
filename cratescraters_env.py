@@ -60,38 +60,34 @@ class CratesCratersEnv(gym.Env, StaticEnv):
     def reset(self):
         """Resets the environment to an initial state, returning the initial observation and observation information."""
         self.game = initialize_game_obj(self.board)
-        # TODO: What to return?
-        # return state, reward, done, None
+        return self.game, 0, False, None
 
     def step(self, action: Direction):
         """Takes a step in the environment using an action returning the next observation, reward, if the environment terminated and observation information."""
-        next_game, state_changed = do_game_move(self.game, action)
+        next_game, _ = do_game_move(self.game, action)
         self.game = next_game
-
-        # TODO: What to return?
-        # return state, reward, done, None
+        reward = CratesCratersEnv.get_return(self.game, len(self.game.move_history))
+        return self.game, reward, self.game.won, None
 
     def render(self, mode="human"):
         if mode != "human":
             pass
         else:
+            # If we want to clear each time we render:
+            # os.system("cls" if os.name == "nt" else "clear")
             print("┏" + ("-" * self.game.board.width * tile_visual_width) + "┓")
 
             for y in range(self.game.board.height):
                 print("|", end="")
                 for x in range(self.game.board.width):
                     layer = self.game.board.get_layer(y, x)
-                    tile = (
-                        layer.foreground
-                        if layer.foreground.id != TileType.EMPTY
-                        else layer.background
-                    )
+                    tile = layer.foreground if layer.foreground.id != TileType.EMPTY else layer.background
                     visual, color = tile_visuals[tile.id]
                     if tile.id == TileType.ONEWAY:
                         visual = visual[tile.orientation]
 
                     if tile.id == TileType.BOMB:
-                        visual = visual + str(tile.fuse)
+                        visual = visual + str(tile.fuse).rjust(2)
 
                     if Position(x, y) == self.game.player:
                         visual, color = player_visual
@@ -100,9 +96,7 @@ class CratesCratersEnv(gym.Env, StaticEnv):
                 print("|")
 
             print("┗" + ("-" * self.game.board.width * tile_visual_width) + "┛")
-            print(
-                f"Coins: {self.game.coins}/{self.game.max_coins}, Keys: {self.game.keys} ({len(self.game.move_history)} moves)"
-            )
+            print(f"Coins: {self.game.coins}/{self.game.max_coins}, Keys: {self.game.keys} ({len(self.game.move_history)} moves)")
 
     @staticmethod
     def next_state(state: Game, action: Direction) -> Game:
@@ -139,6 +133,7 @@ if __name__ == "__main__":
         "D": Direction.RIGHT,
     }
 
+    game_history = []
     while True:
         env.render()
 
@@ -146,7 +141,8 @@ if __name__ == "__main__":
             print("You won!")
             sys.exit(0)
 
-        print("Use the WASD keys to move. Press Q to quit and R to reset.")
+        undo_hint = "U to undo, " if len(game_history) else ""
+        print(f"Use the WASD keys to move. Press {undo_hint}R to reset and Q to quit.")
         keypress = input("Input: ").upper()
 
         if keypress == "Q":
@@ -157,9 +153,14 @@ if __name__ == "__main__":
             env.reset()
             continue
 
+        elif keypress == "U" and game_history:
+            env.game = game_history.pop()
+            continue
+
         elif keypress in key_to_direction:
             direction = key_to_direction[keypress]
-            _ = env.step(direction)
+            game_history.append(env.game)
+            game, _, _, _ = env.step(direction)
 
         else:
             print("Invalid keypress. Please try again.")
